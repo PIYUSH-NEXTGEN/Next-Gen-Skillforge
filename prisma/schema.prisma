@@ -1,0 +1,181 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// User model - can be student or recruiter
+model User {
+  id            String       @id @default(cuid())
+  email         String       @unique
+  name          String?
+  role          String       @default("student") // student, recruiter
+  avatar        String?
+  bio           String?
+  githubUrl     String?
+  linkedinUrl   String?
+  resumeUrl     String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  // Relations
+  userSkills    UserSkill[]
+  skillGaps     SkillGap[]
+  learningPaths LearningPath[]
+}
+
+// Skill model - represents a skill node in the graph
+model Skill {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  category    String?  // e.g., "Programming", "ML", "Soft Skills"
+  description String?
+  icon        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  userSkills    UserSkill[]
+  jobSkills     JobSkill[]
+  relatedSkills SkillRelation[]  @relation("FromSkill")
+  similarTo     SkillRelation[]  @relation("ToSkill")
+  resources     LearningResource[]
+}
+
+// SkillRelation - represents edges between skills (similar_to)
+model SkillRelation {
+  id         String @id @default(cuid())
+  fromSkillId String
+  toSkillId   String
+  relationType String @default("similar_to") // similar_to, prerequisite_for
+  weight      Float  @default(1.0)
+  
+  fromSkill Skill @relation("FromSkill", fields: [fromSkillId], references: [id])
+  toSkill   Skill @relation("ToSkill", fields: [toSkillId], references: [id])
+}
+
+// UserSkill - represents "has_skill" edge with confidence score
+model UserSkill {
+  id           String   @id @default(cuid())
+  userId       String
+  skillId      String
+  confidence   Float    @default(0.0) // 0.0 to 1.0
+  source       String   @default("manual") // resume, github, assessment, manual
+  verified     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  user  User  @relation(fields: [userId], references: [id])
+  skill Skill @relation(fields: [skillId], references: [id])
+  
+  @@unique([userId, skillId])
+}
+
+// Job model - represents job roles
+model Job {
+  id          String   @id @default(cuid())
+  title       String
+  company     String?
+  location    String?
+  type        String?  // full-time, part-time, remote, etc.
+  salary      String?
+  description String?
+  requirements String?
+  postedAt    DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  jobSkills JobSkill[]
+}
+
+// JobSkill - represents "required_for" edge
+model JobSkill {
+  id        String @id @default(cuid())
+  jobId     String
+  skillId   String
+  required  Boolean @default(true)
+  importance Float  @default(1.0) // weight of this skill for the job
+  
+  job   Job   @relation(fields: [jobId], references: [id])
+  skill Skill @relation(fields: [skillId], references: [id])
+  
+  @@unique([jobId, skillId])
+}
+
+// LearningResource - represents learning materials
+model LearningResource {
+  id          String   @id @default(cuid())
+  title       String
+  type        String   // course, tutorial, book, video, project
+  url         String?
+  platform    String?  // Coursera, Udemy, YouTube, etc.
+  duration    String?  // estimated time to complete
+  level       String?  // beginner, intermediate, advanced
+  skillId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  skill Skill @relation(fields: [skillId], references: [id])
+}
+
+// SkillGap - identified skill gaps for users
+model SkillGap {
+  id          String   @id @default(cuid())
+  userId      String
+  skillId     String
+  jobId       String?  // optional - if gap is for a specific job
+  priority    Int      @default(1) // 1-5 priority
+  status      String   @default("open") // open, in_progress, resolved
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id])
+}
+
+// LearningPath - personalized learning path for users
+model LearningPath {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  status      String   @default("active") // active, completed, paused
+  progress    Float    @default(0.0) // 0.0 to 1.0
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id])
+  steps LearningPathStep[]
+}
+
+// LearningPathStep - individual steps in a learning path
+model LearningPathStep {
+  id             String   @id @default(cuid())
+  pathId         String
+  resourceId     String?
+  title          String
+  description    String?
+  order          Int
+  status         String   @default("pending") // pending, in_progress, completed
+  completedAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  path LearningPath @relation(fields: [pathId], references: [id], onDelete: Cascade)
+}
+
+// Demo data for the dashboard
+model DemoStats {
+  id            String   @id @default(cuid())
+  totalUsers    Int      @default(0)
+  totalSkills   Int      @default(0)
+  totalJobs     Int      @default(0)
+  totalMatches  Int      @default(0)
+  updatedAt     DateTime @updatedAt
+}
