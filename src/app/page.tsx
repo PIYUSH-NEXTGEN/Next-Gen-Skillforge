@@ -425,28 +425,30 @@ function JobMatchingSection({
 
 // Skill Gap Analysis Section
 function SkillGapSection({ 
-  userSkills, jobs, matchGaps
+  userSkills, 
+  matches 
 }: { 
   userSkills: UserSkill[]
-  jobs: JobItem[]
-  matchGaps: string[]
+  matches: any[] 
 }) {
-  const userSkillNames = userSkills.map(s => s.skill)
   
-  // Find missing skills from top jobs
-  const getMissingSkills = () => {
+const getMissingSkills = () => {
     const missingMap = new Map<string, { count: number; jobs: string[] }>()
     
-    jobs.forEach(job => {
-      [...job.requiredSkills, ...job.preferredSkills].forEach(skill => {
-        if (!userSkillNames.includes(skill)) {
-          const existing = missingMap.get(skill)
-          if (existing) {
-            existing.count++
-            existing.jobs.push(job.title)
-          } else {
-            missingMap.set(skill, { count: 1, jobs: [job.title] })
+    matches.forEach(match => {
+      match.gaps?.forEach((gap: any) => {
+        const skillName = typeof gap === 'string' ? gap : gap.skillName; 
+        const existing = missingMap.get(skillName)
+        
+        if (existing) {
+          existing.count++
+          // FIX: Changed match.job.title to just match.title
+          if (!existing.jobs.includes(match.title)) {
+             existing.jobs.push(match.title)
           }
+        } else {
+          // FIX: Changed match.job.title to just match.title
+          missingMap.set(skillName, { count: 1, jobs: [match.title] })
         }
       })
     })
@@ -456,9 +458,7 @@ function SkillGapSection({
       .sort((a, b) => b.count - a.count)
   }
 
-  const missingSkills = matchGaps.length > 0
-    ? getMissingSkills().filter((x) => matchGaps.includes(x.skill))
-    : getMissingSkills()
+  const missingSkills = getMissingSkills();
 
   return (
     <section id="gaps" className="py-8">
@@ -468,7 +468,7 @@ function SkillGapSection({
             <Target className="w-5 h-5" />
             Skill Gap Analysis
           </CardTitle>
-          <CardDescription>Skills you're missing for better job matches</CardDescription>
+          <CardDescription>Skills you're missing for better job matches (Powered by Neo4j)</CardDescription>
         </CardHeader>
         <CardContent>
           {userSkills.length === 0 ? (
@@ -479,7 +479,7 @@ function SkillGapSection({
               <p className="text-green-600 font-medium">Great! You have all the key skills!</p>
             </div>
           ) : (
-            <div className="space-y-3">
+             <div className="space-y-3">
               <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-600 dark:text-gray-300 px-2">
                 <div className="col-span-4">Missing Skill</div>
                 <div className="col-span-2 text-center">Priority</div>
@@ -506,7 +506,6 @@ function SkillGapSection({
     </section>
   )
 }
-
 // Learning Path Section
 function LearningPathSection({ 
   userSkills, jobs, prioritizedSkills
@@ -849,23 +848,57 @@ export default function Home() {
 
   const handleResumeUploadClick = () => resumeInputRef.current?.click()
 
-  const onResumeFileSelected = async (event: ChangeEvent<HTMLInputElement>) => {
+ const onResumeFileSelected = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
+    
+    // Read the text from the uploaded file
     const text = await file.text()
-    const extracted = extractSkillCandidates(text).map((name) => ({
-      skill: name,
-      confidence: 0.65,
-      source: 'resume' as const,
-    }))
-    if (extracted.length === 0) {
-      toast({ title: 'No known skills found', description: 'Try a resume text file with explicit skill names.' })
-      return
+    
+    try {
+      // 1. Send the text to our Python AI Microservice
+      const response = await fetch('http://127.0.0.1:8000/parse-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text })
+      });
+      
+      if (!response.ok) throw new Error('AI Engine failed to parse');
+      
+      const data = await response.json();
+      const extracted = data.skills; // This is the array from Python
+
+      // 2. Check if AI actually found anything
+      if (!extracted || extracted.length === 0) {
+        toast({ 
+          title: 'No skills found', 
+          description: "The AI scanned the document but didn't find matching tech keywords." 
+        });
+        return;
+      }
+      
+      // 3. Update state (Using setUserSkills to match your defined state)
+      setUserSkills((prev) => {
+        const combined = [...prev, ...extracted];
+        // Use a Map to filter duplicates by skill name
+        return Array.from(new Map(combined.map(s => [s.skill.toLowerCase(), s])).values());
+      });
+
+      toast({ 
+        title: 'AI Parsing Complete', 
+        description: `Successfully extracted ${extracted.length} skills.` 
+      });
+      
+    } catch (error) {
+      console.error("Connection Error:", error);
+      toast({ 
+        title: 'Connection Error', 
+        description: 'Could not reach Python server. Ensure it is running on port 8000.' 
+      });
+    } finally {
+      if (event.target) event.target.value = '';
     }
-    setUserSkills((prev) => mergeSkills(prev, extracted))
-    toast({ title: 'Resume parsed', description: `Imported ${extracted.length} skills from resume file.` })
-    event.target.value = ''
-  }
+  }; 
 
   const handleGithubImport = async () => {
     const username = window.prompt('Enter your GitHub username')
@@ -970,7 +1003,7 @@ export default function Home() {
         <input ref={resumeInputRef} type="file" accept=".txt,.md,.json" className="hidden" onChange={onResumeFileSelected} />
         <SkillGraphSection userSkills={userSkills} jobs={jobs} />
         <JobMatchingSection userSkills={userSkills} jobs={jobs} matches={matches} />
-        <SkillGapSection userSkills={userSkills} jobs={jobs} matchGaps={prioritizedGaps} />
+        <SkillGapSection userSkills={userSkills} matches={matches} />
         <LearningPathSection userSkills={userSkills} jobs={jobs} prioritizedSkills={prioritizedGaps} />
         
         {/* Footer */}
