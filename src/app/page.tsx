@@ -1,4 +1,4 @@
- 'use client'
+'use client'
 
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -26,6 +26,7 @@ import {
   X,
 } from 'lucide-react'
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart, ResponsiveContainer } from 'recharts'
+import { signIn, signOut, useSession } from "next-auth/react"
 
 type SkillSource = 'manual' | 'resume' | 'github' | 'assessment'
 type UserSkill = { skill: string; confidence: number; source: SkillSource }
@@ -39,7 +40,6 @@ type JobItem = {
   requiredSkills: string[]
   preferredSkills: string[]
 }
-import { signIn, signOut, useSession } from "next-auth/react"
 
 const FALLBACK_SKILLS: SkillCatalogItem[] = [
   { id: 1, name: 'JavaScript', category: 'Programming' },
@@ -107,25 +107,25 @@ function Navigation({ theme, toggleTheme, mounted }: { theme: 'light' | 'dark'; 
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <nav className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-50 transition-colors">
+    <nav className="bg-card border-b border-border shadow-sm sticky top-0 z-50 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-emerald-600" />
-            <span className="font-bold text-gray-900 dark:text-gray-100">NXT-GEN SKILLFORGE</span>
+            <Sparkles className="w-5 h-5 text-primary" />
+            <span className="font-bold text-foreground">NXT-GEN SKILLFORGE</span>
           </div>
 
           <div className="hidden md:flex items-center gap-4 text-sm">
-            <a href="#skills" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">My Skills</a>
-            <a href="#matching" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Job Matching</a>
-            <a href="#gaps" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Skill Gaps</a>
-            <a href="#learning" className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Learning Path</a>
+            <a href="#skills" className="text-muted-foreground hover:text-foreground transition-colors">My Skills</a>
+            <a href="#matching" className="text-muted-foreground hover:text-foreground transition-colors">Job Matching</a>
+            <a href="#gaps" className="text-muted-foreground hover:text-foreground transition-colors">Skill Gaps</a>
+            <a href="#learning" className="text-muted-foreground hover:text-foreground transition-colors">Learning Path</a>
             <Button
               variant="ghost"
               size="icon"
               onClick={toggleTheme}
               aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-              className="text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="text-foreground hover:bg-muted transition-colors"
             >
               {mounted && theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </Button>
@@ -136,23 +136,22 @@ function Navigation({ theme, toggleTheme, mounted }: { theme: 'light' | 'dark'; 
               variant="ghost"
               size="icon"
               onClick={toggleTheme}
-              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-              className="text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="text-foreground hover:bg-muted transition-colors"
             >
               {mounted && theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </Button>
-            <Button variant="ghost" size="icon" className="dark:text-gray-100" onClick={() => setIsOpen(!isOpen)}>
+            <Button variant="ghost" size="icon" className="text-foreground hover:bg-muted" onClick={() => setIsOpen(!isOpen)}>
               {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
           </div>
         </div>
 
         {isOpen && (
-          <div className="md:hidden py-2 border-t border-gray-200 dark:border-gray-800 space-y-2">
-            <a href="#skills" className="block py-1 text-gray-600 dark:text-gray-300">My Skills</a>
-            <a href="#matching" className="block py-1 text-gray-600 dark:text-gray-300">Job Matching</a>
-            <a href="#gaps" className="block py-1 text-gray-600 dark:text-gray-300">Skill Gaps</a>
-            <a href="#learning" className="block py-1 text-gray-600 dark:text-gray-300">Learning Path</a>
+          <div className="md:hidden py-2 border-t border-border space-y-2">
+            <a href="#skills" className="block py-1 text-muted-foreground hover:text-foreground">My Skills</a>
+            <a href="#matching" className="block py-1 text-muted-foreground hover:text-foreground">Job Matching</a>
+            <a href="#gaps" className="block py-1 text-muted-foreground hover:text-foreground">Skill Gaps</a>
+            <a href="#learning" className="block py-1 text-muted-foreground hover:text-foreground">Learning Path</a>
           </div>
         )}
       </div>
@@ -195,17 +194,17 @@ function SkillInputSection({
   }
 
   const getConfidenceColor = (conf: number) => {
-    if (conf >= 0.7) return 'text-green-600 dark:text-green-400'
-    if (conf >= 0.4) return 'text-yellow-600 dark:text-yellow-300'
-    return 'text-red-600 dark:text-red-400'
+    if (conf >= 0.7) return 'text-[#4ADE80]' // Mint Green
+    if (conf >= 0.4) return 'text-yellow-400'
+    return 'text-red-400'
   }
 
   const getSourceBadge = (src: string) => {
     switch(src) {
-      case 'resume': return { label: 'Resume', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200' }
-      case 'github': return { label: 'GitHub', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-200' }
-      case 'assessment': return { label: 'Assessment', color: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-200' }
-      default: return { label: 'Manual', color: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200' }
+      case 'resume': return { label: 'Resume', color: 'bg-blue-900/40 text-blue-200 border border-blue-800' }
+      case 'github': return { label: 'GitHub', color: 'bg-purple-900/40 text-purple-200 border border-purple-800' }
+      case 'assessment': return { label: 'Assessment', color: 'bg-green-900/40 text-green-200 border border-green-800' }
+      default: return { label: 'Manual', color: 'bg-muted text-muted-foreground border border-border' }
     }
   }
 
@@ -220,7 +219,7 @@ function SkillInputSection({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <User className="w-5 h-5" />
+            <User className="w-5 h-5 text-primary" />
             My Skills
           </CardTitle>
           <CardDescription>Add your skills manually, from resume, or GitHub</CardDescription>
@@ -234,7 +233,7 @@ function SkillInputSection({
             </Button>
            {session ? (
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" onClick={onGithubImport} className="bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800">
+            <Button variant="outline" size="sm" onClick={onGithubImport} className="bg-green-900/20 text-green-400 border-green-800 hover:bg-green-900/40">
               <Github className="w-4 h-4 mr-2" />
               Import from {session?.user?.name}
             </Button>
@@ -242,18 +241,18 @@ function SkillInputSection({
              variant="outline" 
              size="sm" 
              onClick={() => signOut()} 
-             className="px-2 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+             className="px-2 text-muted-foreground hover:text-red-400 hover:bg-red-900/20 hover:border-red-900"
              title="Disconnect GitHub"
-        >
-          <X className="w-4 h-4" />
-        </Button>
-      </div>
-    ) : (
-      <Button variant="outline" size="sm" onClick={() => signIn("github")}>
-        <Github className="w-4 h-4 mr-2" />
-        Connect GitHub
-      </Button>
-    )}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => signIn("github")}>
+              <Github className="w-4 h-4 mr-2" />
+              Connect GitHub
+            </Button>
+          )}
             <Button variant="outline" size="sm" onClick={onAssessment}>
               <FileText className="w-4 h-4 mr-2" />
               Take Assessment
@@ -261,17 +260,17 @@ function SkillInputSection({
           </div>
 
           {/* Add Skill Form */}
-          <div className="grid sm:grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg transition-colors">
+          <div className="grid sm:grid-cols-4 gap-4 p-4 bg-background border border-border rounded-lg transition-colors">
             <div>
-              <Label className="text-xs text-gray-700 dark:text-gray-200">Select Skill</Label>
+              <Label className="text-xs text-foreground">Select Skill</Label>
               <select 
-                className="w-full mt-1 p-2 border rounded text-sm bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full mt-1 p-2 border rounded text-sm bg-card border-border text-foreground focus:ring-primary focus:border-primary outline-none"
                 value={selectedSkill}
                 onChange={(e) => setSelectedSkill(e.target.value)}
               >
                 <option value="">Choose skill...</option>
                 {Object.entries(skillsByCategory).map(([category, skills]) => (
-                  <optgroup key={category} label={category}>
+                  <optgroup key={category} label={category} className="bg-background">
                     {skills.map(skill => (
                       <option key={skill.id} value={skill.name}>{skill.name}</option>
                     ))}
@@ -280,31 +279,31 @@ function SkillInputSection({
               </select>
             </div>
             <div>
-              <Label className="text-xs text-gray-700 dark:text-gray-200">Confidence: {confidence}%</Label>
+              <Label className="text-xs text-foreground">Confidence: {confidence}%</Label>
               <Input 
                 type="range" 
                 min="10" 
                 max="100" 
                 value={confidence}
                 onChange={(e) => setConfidence(Number(e.target.value))}
-                className="mt-2"
+                className="mt-2 accent-primary"
               />
             </div>
             <div>
-              <Label className="text-xs text-gray-700 dark:text-gray-200">Source</Label>
+              <Label className="text-xs text-foreground">Source</Label>
               <select 
-                className="w-full mt-1 p-2 border rounded text-sm bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full mt-1 p-2 border rounded text-sm bg-card border-border text-foreground focus:ring-primary focus:border-primary outline-none"
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
               >
-                <option value="manual">Manual Entry</option>
-                <option value="resume">From Resume</option>
-                <option value="github">From GitHub</option>
-                <option value="assessment">Assessment</option>
+                <option value="manual" className="bg-background">Manual Entry</option>
+                <option value="resume" className="bg-background">From Resume</option>
+                <option value="github" className="bg-background">From GitHub</option>
+                <option value="assessment" className="bg-background">Assessment</option>
               </select>
             </div>
             <div className="flex items-end">
-              <Button onClick={addSkill} size="sm" className="w-full">
+              <Button onClick={addSkill} size="sm" className="w-full bg-primary text-primary-foreground shadow-cyber-glow hover:opacity-90">
                 <Plus className="w-4 h-4 mr-1" />
                 Add Skill
               </Button>
@@ -313,27 +312,27 @@ function SkillInputSection({
 
           {/* Current Skills */}
           <div>
-            <h4 className="text-sm font-medium mb-3 text-gray-900 dark:text-gray-100">Your Skills ({userSkills.length})</h4>
+            <h4 className="text-sm font-medium mb-3 text-foreground">Your Skills ({userSkills.length})</h4>
             <div className="flex flex-wrap gap-2">
               {userSkills.map((s, i) => {
                 const badge = getSourceBadge(s.source)
                 return (
-                  <div key={i} className="flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full transition-colors">
-                    <span className="font-medium text-sm text-gray-900 dark:text-gray-100">{s.skill}</span>
+                  <div key={i} className="flex items-center gap-1 px-3 py-1.5 bg-background border border-border rounded-full transition-colors">
+                    <span className="font-medium text-sm text-foreground">{s.skill}</span>
                     <span className={`text-xs ${getConfidenceColor(s.confidence)}`}>
                       {Math.round(s.confidence * 100)}%
                     </span>
                     <span className={`text-xs px-1.5 py-0.5 rounded ${badge.color}`}>
                       {badge.label}
                     </span>
-                    <button onClick={() => removeSkill(s.skill)} className="ml-1 text-gray-500 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400 transition-colors">
+                    <button onClick={() => removeSkill(s.skill)} className="ml-1 text-muted-foreground hover:text-destructive transition-colors">
                       <X className="w-3 h-3" />
                     </button>
                   </div>
                 )
               })}
               {userSkills.length === 0 && (
-                <p className="text-gray-500 dark:text-gray-300 text-sm">No skills added yet. Add your first skill above.</p>
+                <p className="text-muted-foreground text-sm">No skills added yet. Add your first skill above.</p>
               )}
             </div>
           </div>
@@ -377,9 +376,9 @@ function JobMatchingSection({
   }
 
   const getMatchColor = (score: number) => {
-    if (score >= 80) return 'text-green-700 bg-green-100 dark:text-green-200 dark:bg-green-900/40'
-    if (score >= 60) return 'text-yellow-700 bg-yellow-100 dark:text-yellow-200 dark:bg-yellow-900/40'
-    return 'text-red-700 bg-red-100 dark:text-red-200 dark:bg-red-900/40'
+    if (score >= 80) return 'text-[#4ADE80] bg-green-900/20 border border-green-800'
+    if (score >= 60) return 'text-yellow-400 bg-yellow-900/20 border border-yellow-800'
+    return 'text-red-400 bg-red-900/20 border border-red-800'
   }
 
   const sortedJobs = [...jobs].sort((a, b) => calculateMatch(b) - calculateMatch(a))
@@ -389,14 +388,14 @@ function JobMatchingSection({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Briefcase className="w-5 h-5" />
+            <Briefcase className="w-5 h-5 text-primary" />
             Job Matching
           </CardTitle>
           <CardDescription>Jobs ranked by skill match percentage</CardDescription>
         </CardHeader>
         <CardContent>
           {userSkills.length === 0 ? (
-            <p className="text-gray-500 dark:text-gray-300 text-center py-8">Add your skills to see job matches</p>
+            <p className="text-muted-foreground text-center py-8">Add your skills to see job matches</p>
           ) : (
             <div className="space-y-3">
               {sortedJobs.map((job) => {
@@ -404,12 +403,12 @@ function JobMatchingSection({
                 const userSkillNames = userSkills.map(s => s.skill)
                 
                 return (
-                  <div key={job.id} className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg p-4 transition-colors">
+                  <div key={job.id} className="border border-border bg-background rounded-lg p-4 transition-colors">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className="font-medium text-gray-900 dark:text-gray-100">{job.title}</h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-300">{job.company} • {job.location}</p>
-                        <p className="text-sm text-emerald-600">{job.salary}</p>
+                        <h4 className="font-medium text-foreground">{job.title}</h4>
+                        <p className="text-sm text-muted-foreground">{job.company} • {job.location}</p>
+                        <p className="text-sm text-primary mt-1">{job.salary}</p>
                       </div>
                       <div className={`px-3 py-1 rounded-full text-lg font-bold ${getMatchColor(matchScore)}`}>
                         {matchScore}%
@@ -421,10 +420,10 @@ function JobMatchingSection({
                         {job.requiredSkills.map((skill) => (
                           <span 
                             key={skill} 
-                            className={`text-xs px-2 py-0.5 rounded ${
+                            className={`text-xs px-2 py-0.5 rounded border ${
                               userSkillNames.includes(skill) 
-                                ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-200' 
-                                : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200'
+                                ? 'bg-green-900/20 text-[#4ADE80] border-green-800/50' 
+                                : 'bg-red-900/20 text-red-400 border-red-800/50'
                             }`}
                           >
                             {userSkillNames.includes(skill) ? '✓' : '✗'} {skill}
@@ -462,12 +461,10 @@ const getMissingSkills = () => {
         
         if (existing) {
           existing.count++
-          // FIX: Changed match.job.title to just match.title
           if (!existing.jobs.includes(match.title)) {
              existing.jobs.push(match.title)
           }
         } else {
-          // FIX: Changed match.job.title to just match.title
           missingMap.set(skillName, { count: 1, jobs: [match.title] })
         }
       })
@@ -485,35 +482,35 @@ const getMissingSkills = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Target className="w-5 h-5" />
+            <Target className="w-5 h-5 text-primary" />
             Skill Gap Analysis
           </CardTitle>
           <CardDescription>Skills you're missing for better job matches (Powered by Neo4j)</CardDescription>
         </CardHeader>
         <CardContent>
           {userSkills.length === 0 ? (
-            <p className="text-gray-500 dark:text-gray-300 text-center py-8">Add your skills to see gap analysis</p>
+            <p className="text-muted-foreground text-center py-8">Add your skills to see gap analysis</p>
           ) : missingSkills.length === 0 ? (
             <div className="text-center py-8">
-              <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-2" />
-              <p className="text-green-600 font-medium">Great! You have all the key skills!</p>
+              <CheckCircle2 className="w-12 h-12 text-[#4ADE80] mx-auto mb-2" />
+              <p className="text-[#4ADE80] font-medium">Great! You have all the key skills!</p>
             </div>
           ) : (
              <div className="space-y-3">
-              <div className="grid grid-cols-12 gap-2 text-xs font-medium text-gray-600 dark:text-gray-300 px-2">
+              <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground px-2">
                 <div className="col-span-4">Missing Skill</div>
                 <div className="col-span-2 text-center">Priority</div>
                 <div className="col-span-6">Required For</div>
               </div>
               {missingSkills.slice(0, 8).map((item, i) => (
-                <div key={i} className="grid grid-cols-12 gap-2 items-center p-3 bg-gray-50 dark:bg-gray-900 rounded-lg transition-colors">
-                  <div className="col-span-4 font-medium text-sm text-gray-900 dark:text-gray-100">{item.skill}</div>
+                <div key={i} className="grid grid-cols-12 gap-2 items-center p-3 bg-background border border-border rounded-lg transition-colors">
+                  <div className="col-span-4 font-medium text-sm text-foreground">{item.skill}</div>
                   <div className="col-span-2 text-center">
                     <Badge variant={item.count >= 3 ? 'destructive' : item.count >= 2 ? 'default' : 'secondary'}>
                       {item.count} jobs
                     </Badge>
                   </div>
-                  <div className="col-span-6 text-xs text-gray-600 dark:text-gray-300">
+                  <div className="col-span-6 text-xs text-muted-foreground">
                     {item.jobs.slice(0, 2).join(', ')}
                     {item.jobs.length > 2 && ` +${item.jobs.length - 2} more`}
                   </div>
@@ -526,6 +523,7 @@ const getMissingSkills = () => {
     </section>
   )
 }
+
 // Learning Path Section
 function LearningPathSection({ 
   userSkills, jobs, prioritizedSkills
@@ -563,36 +561,36 @@ function LearningPathSection({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <BookOpen className="w-5 h-5" />
+            <BookOpen className="w-5 h-5 text-primary" />
             Personalized Learning Path
           </CardTitle>
           <CardDescription>Recommended courses based on your skill gaps</CardDescription>
         </CardHeader>
         <CardContent>
           {userSkills.length === 0 ? (
-            <p className="text-gray-500 dark:text-gray-300 text-center py-8">Add your skills to get learning recommendations</p>
+            <p className="text-muted-foreground text-center py-8">Add your skills to get learning recommendations</p>
           ) : (
             <div className="space-y-5">
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-medium text-red-700 dark:text-red-300">Urgent (close critical gaps)</p>
+                  <p className="text-xs font-medium text-red-400">Urgent (close critical gaps)</p>
                   <Badge variant="destructive">{urgentLearning.length} items</Badge>
                 </div>
                 {urgentLearning.length === 0 ? (
-                  <div className="text-center py-6 border border-gray-200 dark:border-gray-700 rounded-lg">
-                    <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto mb-2" />
-                    <p className="text-green-600 font-medium text-sm">No urgent gaps found right now.</p>
+                  <div className="text-center py-6 border border-border bg-background rounded-lg">
+                    <CheckCircle2 className="w-10 h-10 text-[#4ADE80] mx-auto mb-2" />
+                    <p className="text-[#4ADE80] font-medium text-sm">No urgent gaps found right now.</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     {urgentLearning.map((course, i) => (
-                      <div key={`u-${i}`} className="flex items-center gap-4 p-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg transition-colors">
-                        <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-200 flex items-center justify-center font-bold text-sm">
+                      <div key={`u-${i}`} className="flex items-center gap-4 p-3 border border-border bg-background rounded-lg transition-colors">
+                        <div className="w-8 h-8 rounded-full bg-red-900/40 text-red-400 border border-red-800 flex items-center justify-center font-bold text-sm">
                           {i + 1}
                         </div>
                         <div className="flex-1">
-                          <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100">{course.title}</h4>
-                          <p className="text-xs text-gray-600 dark:text-gray-300">
+                          <h4 className="font-medium text-sm text-foreground">{course.title}</h4>
+                          <p className="text-xs text-muted-foreground">
                             {course.platform} • {course.duration} • {course.level}
                           </p>
                         </div>
@@ -604,18 +602,18 @@ function LearningPathSection({
               </div>
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-medium text-blue-700 dark:text-blue-300">Future (growth roadmap)</p>
+                  <p className="text-xs font-medium text-primary">Future (growth roadmap)</p>
                   <Badge variant="secondary">{futureLearning.length} items</Badge>
                 </div>
                 <div className="space-y-2">
                   {futureLearning.map((course, i) => (
-                    <div key={`f-${i}`} className="flex items-center gap-4 p-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-lg transition-colors">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-200 flex items-center justify-center font-bold text-sm">
+                    <div key={`f-${i}`} className="flex items-center gap-4 p-3 border border-border bg-background rounded-lg transition-colors">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 text-primary border border-primary/30 flex items-center justify-center font-bold text-sm">
                         {i + 1}
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100">{course.title}</h4>
-                        <p className="text-xs text-gray-600 dark:text-gray-300">
+                        <h4 className="font-medium text-sm text-foreground">{course.title}</h4>
+                        <p className="text-xs text-muted-foreground">
                           {course.platform} • {course.duration} • {course.level}
                         </p>
                       </div>
@@ -691,41 +689,41 @@ function SkillGraphSection({ userSkills, jobs }: { userSkills: UserSkill[]; jobs
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Network className="w-5 h-5" />
+            <Network className="w-5 h-5 text-primary" />
             Skill Spider Analysis
           </CardTitle>
           <CardDescription>Radar charts for strengths, job readiness, and market demand alignment</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-3 gap-3">
-            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 h-64">
-              <p className="text-xs mb-2 text-gray-600 dark:text-gray-300">Category confidence</p>
+            <div className="bg-background border border-border rounded-lg p-3 h-64">
+              <p className="text-xs mb-2 text-muted-foreground">Category confidence</p>
               <ResponsiveContainer width="100%" height="90%">
                 <RadarChart data={categoryRadar}>
-                  <PolarGrid />
-                  <PolarAngleAxis dataKey="metric" tick={{ fontSize: 10 }} />
-                  <Radar dataKey="score" fill="#10b981" fillOpacity={0.35} stroke="#10b981" />
+                  <PolarGrid stroke="#334155" />
+                  <PolarAngleAxis dataKey="metric" tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                  <Radar dataKey="score" fill="#4ADE80" fillOpacity={0.35} stroke="#4ADE80" />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
-            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 h-64">
-              <p className="text-xs mb-2 text-gray-600 dark:text-gray-300">Top-role readiness</p>
+            <div className="bg-background border border-border rounded-lg p-3 h-64">
+              <p className="text-xs mb-2 text-muted-foreground">Top-role readiness</p>
               <ResponsiveContainer width="100%" height="90%">
                 <RadarChart data={readinessRadar}>
-                  <PolarGrid />
-                  <PolarAngleAxis dataKey="metric" tick={{ fontSize: 10 }} />
-                  <Radar dataKey="score" fill="#3b82f6" fillOpacity={0.3} stroke="#3b82f6" />
+                  <PolarGrid stroke="#334155" />
+                  <PolarAngleAxis dataKey="metric" tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                  <Radar dataKey="score" fill="#38BDF8" fillOpacity={0.3} stroke="#38BDF8" />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
-            <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-3 h-64">
-              <p className="text-xs mb-2 text-gray-600 dark:text-gray-300">Demand vs your confidence</p>
+            <div className="bg-background border border-border rounded-lg p-3 h-64">
+              <p className="text-xs mb-2 text-muted-foreground">Demand vs your confidence</p>
               <ResponsiveContainer width="100%" height="90%">
                 <RadarChart data={marketRadar}>
-                  <PolarGrid />
-                  <PolarAngleAxis dataKey="metric" tick={{ fontSize: 10 }} />
+                  <PolarGrid stroke="#334155" />
+                  <PolarAngleAxis dataKey="metric" tick={{ fill: '#94a3b8', fontSize: 10 }} />
                   <Radar dataKey="demand" fill="#8b5cf6" fillOpacity={0.2} stroke="#8b5cf6" />
-                  <Radar dataKey="user" fill="#f59e0b" fillOpacity={0.22} stroke="#f59e0b" />
+                  <Radar dataKey="user" fill="#EAB308" fillOpacity={0.3} stroke="#EAB308" />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
@@ -992,33 +990,38 @@ export default function Home() {
   }, [matches])
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors">
+    <main className="min-h-screen bg-background text-foreground transition-colors">
       <Navigation theme={theme} toggleTheme={toggleTheme} mounted={mounted} />
       
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">NXT-GEN SKILLFORGE</h1>
-          <p className="text-gray-600 dark:text-gray-300 text-sm">Skill-intelligence platform for job matching & upskilling</p>
+          <h1 className="text-2xl font-bold text-foreground">NXT-GEN SKILLFORGE</h1>
+          <p className="text-muted-foreground text-sm mt-1">Skill-intelligence platform for job matching & upskilling</p>
           {loadingData && (
-            <p className="text-xs mt-2 text-emerald-600">Loading platform data...</p>
+            <p className="text-xs mt-2 text-primary">Loading platform data...</p>
           )}
           {apiError && (
-            <p className="text-xs mt-2 text-amber-600">{apiError}</p>
+            <p className="text-xs mt-2 text-red-400">{apiError}</p>
           )}
         </div>
 
-        {/* Stats Bar */}
+       {/* Stats Bar */}
         <div className="grid grid-cols-4 gap-2 mb-6">
           {[
             { label: 'Your Skills', value: userSkills.length },
-              { label: 'Job Matches', value: userSkills.length > 0 ? jobs.length : 0 },
-              { label: 'Skill Gaps', value: computedSkillGaps },
+            { label: 'Job Matches', value: userSkills.length > 0 ? jobs.length : 0 },
+            { label: 'Skill Gaps', value: computedSkillGaps },
             { label: 'Learning', value: userSkills.length > 0 ? 4 : 0 }
           ].map((stat, i) => (
-            <div key={i} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-3 text-center transition-colors">
-              <div className="text-xl font-bold text-emerald-600">{stat.value}</div>
-              <div className="text-xs text-gray-600 dark:text-gray-300">{stat.label}</div>
+            <div 
+              key={i} 
+              className="bg-card border border-border rounded-lg p-3 text-center transition-all hover:border-primary/50"
+            >
+              <div className="text-xl font-bold text-primary">{stat.value}</div>
+              <div className="text-xs text-muted-foreground uppercase tracking-wider font-medium mt-1">
+                {stat.label}
+              </div>
             </div>
           ))}
         </div>
@@ -1039,7 +1042,7 @@ export default function Home() {
         <LearningPathSection userSkills={userSkills} jobs={jobs} prioritizedSkills={prioritizedGaps} />
         
         {/* Footer */}
-        <footer className="text-center py-6 text-sm text-gray-600 dark:text-gray-300 border-t border-gray-200 dark:border-gray-800 mt-8">
+        <footer className="text-center py-6 text-sm text-muted-foreground border-t border-border mt-8">
           © 2024 NXT-GEN SKILLFORGE - Next Gen Builders
         </footer>
       </div>

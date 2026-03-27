@@ -52,12 +52,17 @@ const config: Config = {
   				'5': 'hsl(var(--chart-5))'
   			}
   		},
+		boxShadow: {
+        'cyber-glow': '0 0 20px rgba(56, 189, 248, 0.25)',
+	    },
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
+			
   		}
-  	}
+			
+  	},
   },
   plugins: [tailwindcssAnimate],
 };
